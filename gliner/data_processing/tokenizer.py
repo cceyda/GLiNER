@@ -17,6 +17,14 @@ class WhitespaceTokenSplitter(TokenSplitterBase):
         for match in self.whitespace_pattern.finditer(text):
             yield match.group(), match.start(), match.end()
 
+class CharTokenSplitter(TokenSplitterBase):
+    def __init__(self):
+        pass
+    
+    def __call__(self, text):
+        for idx,char in enumerate(text):
+            yield char, idx, idx+1
+
 
 class SpaCyTokenSplitter(TokenSplitterBase):
     def __init__(self, lang=None):
@@ -111,9 +119,11 @@ class WordsSplitter(TokenSplitterBase):
         elif splitter_type == 'jieba':
             self.splitter = JiebaTokenSplitter()
         elif splitter_type == 'hanlp':
-            self.splitter = HanLPTokenSplitter()    
+            self.splitter = HanLPTokenSplitter()   
+        elif splitter_type == 'char':
+            self.splitter = CharTokenSplitter() 
         else:
-            raise ValueError(f"{splitter_type} is not implemented, choose between 'whitespace', 'spacy', 'jieba', 'hanlp' and 'mecab'")
+            raise ValueError(f"{splitter_type} is not implemented, choose between 'whitespace', 'spacy', 'jieba', 'hanlp', 'mecab' and  'char'")
     
     def __call__(self, text):
         for token in self.splitter(text):
