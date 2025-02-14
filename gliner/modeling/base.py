@@ -48,7 +48,7 @@ def extract_prompt_features_and_word_embeddings(config, token_embeds, input_ids,
     # getting prompt embeddings
     batch_size, sequence_length, embed_dim = token_embeds.shape
 
-    class_token_mask = input_ids == config.class_token_index
+    class_token_mask = input_ids == config.class_token_index # <<ENT>> token
     num_class_tokens = torch.sum(class_token_mask, dim=-1, keepdim=True)
 
     max_embed_dim = num_class_tokens.max()
@@ -83,23 +83,23 @@ class BaseModel(ABC, nn.Module):
         
         if not config.labels_encoder:
             self.token_rep_layer = Encoder(config, from_pretrained)
+            if self.config.has_rnn:
+                self.rnn = LstmSeq2SeqEncoder(config)
         else:
             self.token_rep_layer = BiEncoder(config, from_pretrained)
-        if self.config.has_rnn:
-            self.rnn = LstmSeq2SeqEncoder(config)
 
-        if config.post_fusion_schema:
-            self.config.num_post_fusion_layers = 3
-            print('Initializing cross fuser...')
-            print('Post fusion layer:', config.post_fusion_schema)
-            print('Number of post fusion layers:', config.num_post_fusion_layers)
+            if config.post_fusion_schema:
+                self.config.num_post_fusion_layers = 3
+                print('Initializing cross fuser...')
+                print('Post fusion layer:', config.post_fusion_schema)
+                print('Number of post fusion layers:', config.num_post_fusion_layers)
 
-            self.cross_fuser = CrossFuser(self.config.hidden_size,
-                                            self.config.hidden_size,
-                                            num_heads=self.token_rep_layer.bert_layer.model.config.num_attention_heads,
-                                            num_layers=self.config.num_post_fusion_layers,
-                                            dropout=config.dropout, 
-                                            schema=config.post_fusion_schema)
+                self.cross_fuser = CrossFuser(self.config.hidden_size,
+                                                self.config.hidden_size,
+                                                num_heads=self.token_rep_layer.bert_layer.model.config.num_attention_heads,
+                                                num_layers=self.config.num_post_fusion_layers,
+                                                dropout=config.dropout, 
+                                                schema=config.post_fusion_schema)
             
     def features_enhancement(self, text_embeds, labels_embeds, text_mask=None, labels_mask=None):
         labels_embeds, text_embeds = self.cross_fuser(labels_embeds, text_embeds, labels_mask, text_mask)
