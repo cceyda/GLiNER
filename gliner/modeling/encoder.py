@@ -3,17 +3,17 @@ from pathlib import Path
 
 import torch
 from torch import nn
-from transformers import AutoModel, AutoConfig
+from transformers import AutoConfig, AutoModel
 
+from ..utils import MissedPackageException, is_module_available
 from .layers import LayersFuser
-from ..utils import is_module_available, MissedPackageException
 
 IS_LLM2VEC = is_module_available('llm2vec')
 IS_PEFT = is_module_available('peft')
 IS_TURBOT5 = is_module_available('turbot5')
 
 if IS_LLM2VEC:
-    from llm2vec.models import MistralBiModel, LlamaBiModel, GemmaBiModel, Qwen2BiModel
+    from llm2vec.models import GemmaBiModel, LlamaBiModel, MistralBiModel, Qwen2BiModel
     DECODER_MODEL_MAPPING = {
         "MistralConfig": MistralBiModel,
         "LlamaConfig": LlamaBiModel,
@@ -110,24 +110,24 @@ class Encoder(nn.Module):
     def __init__(self, config, from_pretrained: bool = False):
         super().__init__()
 
-        self.bert_layer = Transformer( #transformer_model
+        self.tokens_encoder = Transformer( #transformer_model
             config.model_name, config, from_pretrained,
         )
 
-        bert_hidden_size = self.bert_layer.model.config.hidden_size
+        bert_hidden_size = self.tokens_encoder.model.config.hidden_size
 
         if config.hidden_size != bert_hidden_size:
             self.projection = nn.Linear(bert_hidden_size, config.hidden_size)
 
     def resize_token_embeddings(self, new_num_tokens, pad_to_multiple_of=None):
-        return self.bert_layer.model.resize_token_embeddings(new_num_tokens, 
+        return self.tokens_encoder.model.resize_token_embeddings(new_num_tokens, 
                                                                 pad_to_multiple_of)
 
     def get_input_embeddings(self):
-        return self.bert_layer.model.get_input_embeddings()
+        return self.tokens_encoder.model.get_input_embeddings()
     
     def encode_text(self, input_ids, attention_mask, *args, **kwargs):
-        token_embeddings = self.bert_layer(input_ids, attention_mask, *args, **kwargs)
+        token_embeddings = self.tokens_encoder(input_ids, attention_mask, *args, **kwargs)
         if hasattr(self, "projection"):
             token_embeddings = self.projection(token_embeddings)
         return token_embeddings

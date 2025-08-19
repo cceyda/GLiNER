@@ -1,19 +1,19 @@
-from typing import Optional, Tuple
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import warnings
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
-
 from transformers.utils import ModelOutput
 
-from .encoder import Encoder, BiEncoder
-from .layers import LstmSeq2SeqEncoder, CrossFuser, create_projection_layer
-from .scorers import Scorer
+from .encoder import BiEncoder, Encoder
+from .layers import CrossFuser, LstmSeq2SeqEncoder, create_projection_layer
 from .loss_functions import focal_loss_with_logits
+from .scorers import Scorer
 from .span_rep import SpanRepLayer
+
 
 @dataclass
 class GLiNERModelOutput(ModelOutput):
@@ -89,14 +89,14 @@ class BaseModel(ABC, nn.Module):
             self.token_rep_layer = BiEncoder(config, from_pretrained)
 
             if config.post_fusion_schema:
-                self.config.num_post_fusion_layers = 3
+                self.config.num_post_fusion_layers = getattr(config, 'num_post_fusion_layers', 3)
                 print('Initializing cross fuser...')
                 print('Post fusion layer:', config.post_fusion_schema)
                 print('Number of post fusion layers:', config.num_post_fusion_layers)
 
                 self.cross_fuser = CrossFuser(self.config.hidden_size,
                                                 self.config.hidden_size,
-                                                num_heads=self.token_rep_layer.bert_layer.model.config.num_attention_heads,
+                                                num_heads=self.token_rep_layer.tokens_encoder.model.config.num_attention_heads,
                                                 num_layers=self.config.num_post_fusion_layers,
                                                 dropout=config.dropout, 
                                                 schema=config.post_fusion_schema)
