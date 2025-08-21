@@ -1,22 +1,22 @@
-from typing import Optional, Union, Any, Dict, Tuple, List
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
+
 import transformers
-from transformers.training_args import OptimizerNames
-from transformers.trainer import (
-    is_sagemaker_mp_enabled,
-    get_parameter_names,
-    ALL_LAYERNORM_LAYERS,
-)
+from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
+from transformers.trainer import get_parameter_names, is_sagemaker_mp_enabled
 from transformers.trainer_utils import seed_worker
+from transformers.training_args import OptimizerNames
 
 if transformers.utils.is_apex_available():
     from apex import amp
 
 if is_sagemaker_mp_enabled():
     from transformers.trainer_pt_utils import smp_forward_backward
+
 from torch.utils.data import DataLoader, Dataset
+
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -293,4 +293,5 @@ class Trainer(transformers.Trainer):
             else:
                 self._eval_dataloaders = {dataloader_key: eval_dataloader}
 
+        return self.accelerator.prepare(eval_dataloader)
         return self.accelerator.prepare(eval_dataloader)

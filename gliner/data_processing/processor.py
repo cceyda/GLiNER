@@ -2,15 +2,16 @@ import random
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import List, Tuple, Dict, Union
 from concurrent.futures import ProcessPoolExecutor
+from typing import Dict, List, Tuple, Union
 
 import torch
-from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pad_sequence
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
 
 from .utils import pad_2d_tensor
+
 
 # Abstract base class for handling data processing
 class BaseProcessor(ABC):
@@ -54,7 +55,7 @@ class BaseProcessor(ABC):
         dict_tag = defaultdict(int)
         for span in spans:
             if span[2] in classes_to_id:
-                dict_tag[(span[0], span[1])] = classes_to_id[span[2]]
+                dict_tag[(int(span[0]), int(span[1]))] = classes_to_id[span[2]]
         return dict_tag
 
     @abstractmethod
@@ -353,7 +354,7 @@ class SpanProcessor(BaseProcessor):
             lab_flt = []
             for span in ner:
                 if span[2] in classes_to_id:
-                    lab_flt.append(((span[0], span[1]), classes_to_id[span[2]]))
+                    lab_flt.append(((int(span[0]), int(span[1])), classes_to_id[span[2]]))
 
             for span, class_id in lab_flt:
                 if span in span_to_index:
@@ -494,4 +495,4 @@ class TokenBiEncoderProcessor(TokenProcessor, BaseBiEncoderProcessor):
             labels = self.create_labels(batch['entities_id'], batch_size, seq_len, num_classes)
             tokenized_input['labels'] = labels
 
-        return tokenized_input
+        return tokenized_input        return tokenized_input
